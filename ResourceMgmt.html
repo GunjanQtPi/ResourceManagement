@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Map</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+	  
+	  #button_blr {
+        align-items: center;
+        margin-left: 700px;
+        padding: 7px;
+      }
+      #button_india {
+        align-items: center;
+        margin-left: 700px;
+        padding: 7px;
+      }
+	  #button_refresh {
+        align-items: center;
+        margin-left: 700px;
+        padding: 7px;
+      }
+	  
+    </style>
+  </head>
+  <body>
+	<div id="map"></div>
+	<button id="button_blr" onclick=zoomfn(12.975898,77.593001,12)>Bangalore</button>
+    <button id="button_india" onclick=zoomfn(22.082639,78.921412,4)>India</button>
+	
+  	<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCv5LbjJHXIOAmayzMRhHz_pU2027iuG0I&sensor=false"    async defer></script>
+
+  
+	<!-- The core Firebase JS SDK is always required and must be listed first -->
+		<script src="https://www.gstatic.com/firebasejs/6.1.0/firebase-app.js"></script>
+
+	<!-- TODO: Add SDKs for Firebase products that you want to use
+     https://firebase.google.com/docs/web/setup#config-web-app -->
+  
+	<!-- Add Firebase products that you want to use -->
+  <script src="https://www.gstatic.com/firebasejs/6.1.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/6.1.0/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.1.0/firebase-database.js"></script>
+  
+      </script>
+   
+    <script>
+	
+	var firebaseConfig = {
+    apiKey: "AIzaSyBIvYW8RoFcgH36NZ2aIv_0vugsjetYfOM",
+    authDomain: "trainersmanagement.firebaseapp.com",
+    databaseURL: "https://trainersmanagement.firebaseio.com",
+    projectId: "trainersmanagement",
+    storageBucket: "",
+    messagingSenderId: "1019788159521",
+    appId: "1:1019788159521:web:4bc631181086453f"
+  };
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+	
+	var db = document.getElementById('db');
+	
+	var dbRef = firebase.database().ref();
+	var schools = firebase.database().ref().child('Schools');
+	var trainers = firebase.database().ref().child('Trainers');
+	
+	/*var dbRef = firebase.database().ref().child('Schools').child('ID');
+	dbRef.on('value',snap => db.innerText = snap.val());*/
+	
+	var lat,lng,name;
+	
+	var map;
+			map = new google.maps.Map(document.getElementById('map'), {
+			center: {lat: 22.082639, lng: 78.921412},//new google.maps.LatLng(lat, lng),
+			zoom: 6
+		});
+		
+	var infowindow = new google.maps.InfoWindow();
+	var schoolCircle = new google.maps.Circle();
+	var trainerCircle = new google.maps.Circle();
+
+	var schools, schoolMarkers, trainerMarkers, trainers;
+	
+	schools.on('value', datasnapshot => {
+		schools = datasnapshot.val();
+		setSchoolMarkers();
+	});
+
+	trainers.on('value',datasnapshot => {
+		trainers = datasnapshot.val();
+		setTrainerMarkers();
+	});
+	
+	function setSchoolMarkers(){
+
+		for(var i=1;i<schools.length;i++){
+			name = schools[i].Name;
+			lat = schools[i].Latitude;
+			lng = schools[i].Longitude;			
+			pos = new google.maps.LatLng(lat, lng);
+			schoolMarkers = new google.maps.Marker({
+				position: new google.maps.LatLng(lat, lng),
+				map: map,
+				title: name
+			});
+
+			var circle = new google.maps.Circle();
+			google.maps.event.addListener(schoolMarkers,'click', (function(schoolMarkers,name,infowindow,pos) {
+				return function() {
+				infowindow.setContent(name);
+				infowindow.open(map,schoolMarkers);
+				addSchoolCircle(pos);
+				};
+			})(schoolMarkers,name,infowindow,pos));	
+
+		}
+	
+	}
+	
+	function setTrainerMarkers(){
+
+		for(var i=1;i<trainers.length;i++){
+			name = trainers[i].Name;
+			lat = trainers[i].Latitude;
+			lng = trainers[i].Longitude;			
+			pos = new google.maps.LatLng(lat, lng);
+			trainerMarkers = new google.maps.Marker({
+				position: new google.maps.LatLng(lat, lng),
+				map: map,
+				icon: {
+					path: google.maps.SymbolPath.CIRCLE,
+					scale: 7,
+				},				
+				title: name
+			});
+			
+			var circle = new google.maps.Circle();			
+			google.maps.event.addListener(trainerMarkers,'click', (function(trainerMarkers,name,infowindow,pos) {
+				return function() {
+				infowindow.setContent(name);
+				infowindow.open(map,trainerMarkers);
+				addTrainerCircle(pos);
+				};
+			})(trainerMarkers,name,infowindow,pos));		
+	
+		}
+	
+	}
+	
+	function addSchoolCircle(location) {    
+  // Add the circle for this city to the map.    
+		schoolCircle = new google.maps.Circle({    
+			strokeColor: '#FF0000',    
+			strokeOpacity: 0.8,    
+			strokeWeight: 2,    
+			fillColor: '#FF0000',    
+			fillOpacity: 0.35,    
+			map: map,    
+			center: location,    
+			radius: 5000,  
+			draggable:false  
+		});  
+	} 
+	
+	
+	function addTrainerCircle(location) {    
+  //Add the circle for this city to the map.    
+		trainerCircle = new google.maps.Circle({    
+			strokeColor: '#00FF00',    
+			strokeOpacity: 0.8,    
+			strokeWeight: 2,    
+			fillColor: '#00FF00',    
+			fillOpacity: 0.35,    
+			map: map,    
+			center: location,    
+			radius: 5000,  
+			draggable:false  
+		});  
+	}
+	
+	function zoomfn(lat,lng,zoom){
+      map.panTo({lat:lat, lng:lng});
+      map.setCenter({lat:lat, lng:lng});
+      map.setZoom(zoom);
+    }
+	
+	function refreshMap(){
+		map.panTo({lat:22.082639, lng:78.921412});
+		map.setCenter({lat:22.082639, lng:78.921412});
+		map.setZoom(6);
+		infowindow.close();
+		
+		trainerCircle.setVisible(false);
+		schoolCircle.setVisible(false);
+	}
+	
+	</script>
+	<button id="button_refresh" onclick=refreshMap()>Refresh</button>
+  </body>
+</html>
